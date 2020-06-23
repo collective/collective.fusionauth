@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from AccessControl import ClassSecurityInfo
 from App.class_init import InitializeClass
+import plone.api
 from BTrees import OOBTree
 from collective.fusionauth.interfaces import IFusionAuthPlugin
 from Products.PlonePAS import interfaces as plonepas_interfaces
@@ -62,7 +63,7 @@ class FusionAuthPlugin(BasePlugin):
         self._setId(id)
         self.title = title
         self.init_settings()
-        self.plugin_caching = True
+        self.users = dict()
 
     def init_settings(self):
         self.settings = OOBTree.OOBTree()
@@ -72,6 +73,12 @@ class FusionAuthPlugin(BasePlugin):
         pas = self._getPAS()
         ids = pas.plugins.listPluginIds(iface)
         return self.getId() in ids
+
+    
+    @property
+    @security.private
+    def users(self):
+        return self._ugm().users
 
     @security.public
     def authenticateCredentials(self, credentials):
@@ -84,7 +91,18 @@ class FusionAuthPlugin(BasePlugin):
 
         o If the credentials cannot be authenticated, return None.
         """
-        
+        print('inside')
+
+        request = plone.api.portal.get().REQUEST
+
+        print(request.cookies)
+        fauth_token = request.getCookie('_fauth')
+        if fauth_token in self.users:
+            print('found')
+            return self.users.get(fauth_token)
+
+
+
         default = None
         if not self.is_plugin_active(pas_interfaces.IAuthenticationPlugin):
             return default
@@ -106,7 +124,13 @@ class FusionAuthPlugin(BasePlugin):
 
         response = requests.post(url, headers=headers, data = json.dumps(payload))
         if response.status_code == 202:
-            return response.json()
+            data = response.json()
+            token = data['token']
+
+            request.response.setCookie(
+                    '_fauth', token)
+            self.users['token'] = data
+            return self.users['token']
 
 
 InitializeClass(FusionAuthPlugin)
