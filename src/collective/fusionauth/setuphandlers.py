@@ -1,23 +1,29 @@
 # -*- coding: utf-8 -*-
-from Products.CMFPlone.interfaces import INonInstallable
-from zope.interface import implementer
+from collective.fusionauth.plugin import FusionAuthPlugin
+from zope.component.hooks import getSite
 
 
-@implementer(INonInstallable)
-class HiddenProfiles(object):
+TITLE = "FusionAuth plugin (collective.fusionauth)"
 
-    def getNonInstallableProfiles(self):
-        """Hide uninstall profile from site-creation and quickinstaller."""
-        return [
-            'collective.fusionauth:uninstall',
-        ]
+
+def _addPlugin(pas, pluginid="fusionauth"):
+    installed = pas.objectIds()
+    if pluginid in installed:
+        return TITLE + " already installed."
+    plugin = FusionAuthPlugin(pluginid, title=TITLE)
+    pas._setObject(pluginid, plugin)
+    plugin = pas[plugin.getId()]  # get plugin acquisition wrapped!
+    for info in pas.plugins.listPluginTypeInfo():
+        interface = info["interface"]
+        if not interface.providedBy(plugin):
+            continue
+        pas.plugins.activatePlugin(interface, plugin.getId())
+        pas.plugins.movePluginsDown(
+            interface, [x[0] for x in pas.plugins.listPlugins(interface)[:-1]]
+        )
 
 
 def post_install(context):
-    """Post install script"""
-    # Do something at the end of the installation of this package.
-
-
-def uninstall(context):
-    """Uninstall script"""
-    # Do something at the end of the uninstallation of this package.
+    site = getSite()
+    pas = site.acl_users
+    _addPlugin(pas)

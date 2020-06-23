@@ -32,12 +32,6 @@
       directory="profiles/uninstall"
       description="Uninstalls the collective.fusionauth add-on."
       provides="Products.GenericSetup.interfaces.EXTENSION"
-      post_handler=".setuphandlers.uninstall"
-      />
-
-  <utility
-      factory=".setuphandlers.HiddenProfiles"
-      name="collective.fusionauth-hiddenprofiles"
       />
 
   <!-- -*- extra stuff goes here -*- -->

@@ -64,6 +64,8 @@ setup(
             'plone.testing>=5.0.0',
             'plone.app.contenttypes',
             'plone.app.robotframework[debug]',
+            'fusionauth-client',
+            'requests'
         ],
     },
     entry_points="""
